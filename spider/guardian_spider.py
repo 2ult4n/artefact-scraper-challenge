@@ -1,6 +1,9 @@
 """Module GuardianSpider Spider craweling through the gaurdian news website extracting news data"""
 import scrapy
 from items.article import Article
+from providers.spider_config_provider import SpiderConfigProvider
+from functools import partial
+
 
 
 class GuardianSpider(scrapy.Spider):
@@ -10,35 +13,31 @@ class GuardianSpider(scrapy.Spider):
     start_urls = ['https://www.theguardian.com/world/all']
 
     def parse(self, response):
-        for article_url in response.xpath('//*[contains(@class,"fc-item__link")]//@href').extract():
+        _spider_config_provider = SpiderConfigProvider()
+
+        for article_url in response.xpath(_spider_config_provider.xpath_article_url).extract():
             yield scrapy.Request(
                 url=article_url,
-                callback=self.parsearticle
+                callback=partial(self.parsearticle, _spider_config_provider=_spider_config_provider)
             )
-
-        next_page = response.xpath(
-            '//*[contains(@class,"pagination__action--static") and contains(@rel,"next")]//@href').extract_first()
+        
+        next_page = response.xpath(_spider_config_provider.xpath_paginaition).extract_first()
         if next_page:
             yield scrapy.Request(
                 response.urljoin(next_page),
                 callback=self.parse
             )
 
-    def parsearticle(self, response):
+    def parsearticle(self, response, _spider_config_provider):
         # Test if the article is already crawled
         if 'cached' in response.flags:
             return
-
         item = Article()
 
-        item['author'] = response.xpath(
-            '//*[contains(@rel,"author")]//text()').extract()
-        item['headline'] = response.xpath(
-            '//*[contains(@data-gu-name,"headline")]//text()').extract_first()
-        item['content'] = ''.join(response.xpath(
-            '//*[contains(@id,"maincontent")]//p//text()').extract())
-        item['published_at'] = response.xpath(
-            '//*[contains(@property,"article:published_time")]//@content').extract_first()
+        item['author'] = response.xpath(_spider_config_provider.xpath_author).extract()
+        item['headline'] = response.xpath(_spider_config_provider.xpath_headline).extract_first()
+        item['content'] = ''.join(response.xpath(_spider_config_provider.xpath_content).extract())
+        item['published_at'] = response.xpath(_spider_config_provider.xpath_publish_date).extract_first()
         item['url'] = response.request.url
 
         yield item
