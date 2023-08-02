@@ -9,7 +9,7 @@ def list_articles(request: Request):
     articles = list(request.app.database["news"].find(limit=100))
     return articles
 
-@router.get("/search/{query}", response_description="Search articles by keywords", response_model=List[dict])
+@router.get("/search", response_description="Search articles by keywords", response_model=List[dict])
 def search_articles(query: str, request: Request):
     articles = list(request.app.database["news"].aggregate([
   {
