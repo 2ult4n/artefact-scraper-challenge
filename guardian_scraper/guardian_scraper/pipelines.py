@@ -1,4 +1,3 @@
-
 from pymongo import MongoClient
 from scrapy.exceptions import DropItem
 import os 
